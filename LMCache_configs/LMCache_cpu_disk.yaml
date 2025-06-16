@@ -1,5 +1,6 @@
 # CPU and disk
 local_cpu: True
-max_local_cpu_size: 9 # GB
-max_local_disk_size: 18 # GB
+max_local_cpu_size: 16 # GB 
+local_disk: "file://root/lmcache/cache"
+max_local_disk_size: 32 # GB
 remote_serde: NULL

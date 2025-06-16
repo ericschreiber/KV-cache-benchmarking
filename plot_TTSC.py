@@ -101,7 +101,7 @@ def plot_time_per_token(json_file: str, output_image: str) -> None:
             linewidth=2,
             marker="o",
             markersize=8,
-            label=f"Repetition {repetition_key.split('_')[1]}",
+            label=f"Repetition {repetition_key.split('_')[1].split(':')[0]}",
         )
 
         # Add value annotations for each repetition
@@ -162,7 +162,7 @@ def plot_time_per_token(json_file: str, output_image: str) -> None:
             linewidth=2,
             alpha=0.8,  # Make line slightly transparent
             linestyle="-",
-            label=f"Repetition {repetition_key.split('_')[1]}",
+            label=f"Repetition {repetition_key.split('_')[1].split(':')[0]}",
         )
 
         # Add value annotations for averages

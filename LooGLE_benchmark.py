@@ -29,9 +29,13 @@ from openai import OpenAI
 from datasets import load_dataset, Dataset
 
 
-class DatasetHandler:
-    @staticmethod
-    def loogle_handler(num_unique_prompts, num_input_words, seed, offset):
+class LooGLE_Dataset:
+    def __init__(self):
+        self.dataset = self.load_loogle_dataset()
+
+    def load_loogle_dataset(self):
+        """Load and preprocess the LooGLE dataset once"""
+        print("Loading LooGLE dataset...")
         ds_original = load_dataset("bigai-nlco/LooGLE", "longdep_qa")
         # As the dataset has multiple questions to the same context, we need to make sure that we have unique prompts
         # 1. Convert to pandas
@@ -43,15 +47,20 @@ class DatasetHandler:
         ds_pd = ds_pd.groupby("context").first().reset_index()
 
         ds = Dataset.from_pandas(ds_pd)
-        # print(f"Original dataset size: {original_size}") # 1101
-        # print(f"Unique contexts dataset size: {len(ds)}") # 140
+        print(f"Original dataset size: {original_size}")
+        print(f"Unique contexts dataset size: {len(ds)}")
+        return ds
 
-        dataset_size = len(ds)
+    def create_conversations_from_dataset(
+        self, num_unique_prompts, num_input_words, seed, offset
+    ):
+        """Create conversations from pre-loaded dataset"""
+        dataset_size = len(self.dataset)
         assert (
             num_unique_prompts + offset <= dataset_size
         ), f"Requested {num_unique_prompts} unique prompts, with offset {offset}, dataset has {dataset_size} unique prompts. Offset is due to the number of prompts already run."
 
-        sampled_dataset = ds.shuffle(seed=seed).select(
+        sampled_dataset = self.dataset.shuffle(seed=seed).select(
             range(offset, offset + num_unique_prompts)
         )
 
@@ -83,7 +92,7 @@ class DatasetHandler:
         return conversations
 
 
-DATASET_HANDLERS = {"LooGLE": DatasetHandler.loogle_handler}
+DATASET_HANDLERS = {"LooGLE": LooGLE_Dataset}
 
 
 class ExecutionOrder:
@@ -218,17 +227,17 @@ EXECUTION_ORDERS = {
 }
 
 
-def create_sample_conversations(
-    dataset_key: str,
+def create_sample_conversations_from_dataset(
+    dataset_handler,
     num_unique_prompts: int,
     num_input_words: int,
     seed: int = 42,
     offset: int = 0,
 ):
-    handler = DATASET_HANDLERS.get(dataset_key)
-    if not handler:
-        raise ValueError(f"Unknown dataset key: {dataset_key}")
-    return handler(num_unique_prompts, num_input_words, seed, offset)
+    """Create conversations from pre-loaded dataset"""
+    return dataset_handler.create_conversations_from_dataset(
+        num_unique_prompts, num_input_words, seed, offset
+    )
 
 
 def call_server_completion(client, model, messages, temperature, max_tokens):
@@ -326,6 +335,7 @@ def calculate_metrics(
 
 
 def run_benchmark(
+    dataset_handler,
     api_base: str = "http://localhost:8000/v1",
     model: str = "default",
     execution_order: str = "random",
@@ -336,7 +346,6 @@ def run_benchmark(
     num_repetitions: int = 10,
     num_concurrent_requests: int = -1,
     seed: int = 42,
-    dataset_key: str = "LooGLE",
     temperature: float = 0.7,
 ):
     client = OpenAI(api_key="sk-dummy", base_url=api_base)
@@ -345,8 +354,8 @@ def run_benchmark(
         raise ValueError(f"Unknown execution order: {execution_order}")
 
     execution_func = EXECUTION_ORDERS[execution_order]
-    prompts = create_sample_conversations(
-        dataset_key, num_unique_prompts, num_input_words, seed, offset
+    prompts = create_sample_conversations_from_dataset(
+        dataset_handler, num_unique_prompts, num_input_words, seed, offset
     )
 
     print(f"=== LooGLE Benchmark Configuration ===")
@@ -358,7 +367,6 @@ def run_benchmark(
         f"Concurrent requests: {num_concurrent_requests if num_concurrent_requests != -1 else 'unlimited'}"
     )
     print(f"Execution order: {execution_order}")
-    print(f"Dataset: {dataset_key}")
     print(f"Random seed: {seed}")
     print()
 
@@ -481,6 +489,12 @@ Examples:
         default="",
         help="Optional description or notes for the experiment.",
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="LooGLE",
+        help="Dataset to use for benchmarking (default: LooGLE)",
+    )
 
     args = parser.parse_args()
     num_unique_prompts = [
@@ -489,6 +503,8 @@ Examples:
     num_repetitions = [
         int(reps.strip()) for reps in args.num_repetitions.split(",") if reps.strip()
     ]
+
+    dataset_handler = DATASET_HANDLERS[args.dataset]()
 
     # Create metadata
     metadata = {
@@ -519,6 +535,7 @@ Examples:
             )
             print(f"Sum of num prompts: {sum_num_prompts}")
             results = run_benchmark(
+                dataset_handler,
                 api_base=args.api_base,
                 model=args.model,
                 num_input_words=args.num_input_words,
@@ -559,8 +576,10 @@ Examples:
 
 
 def test_benchmark_output_input_conversations():
+    # Load dataset once
+    dataset_handler = DATASET_HANDLERS["LooGLE"]()
     # print out the created conversations
-    prompts = create_sample_conversations("LooGLE", 100, 100, 42, 0)
+    prompts = create_sample_conversations_from_dataset(dataset_handler, 100, 100, 42, 0)
     for prompt in prompts:
         print(prompt)
 

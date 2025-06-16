@@ -502,7 +502,6 @@ Examples:
                 temperature=args.temperature,
             )
             results_dict[num_prompts][f"repetition_{index}:{num_reps}"] = results
-            sum_num_prompts += num_prompts
 
             # Display summary for this run
             print(
@@ -518,6 +517,7 @@ Examples:
             print(
                 f"Average request TPS: {results['throughput']['request_tps_mean']:.2f} ± {results['throughput']['request_tps_std']:.2f}"
             )
+        sum_num_prompts += num_prompts
 
     # Add metadata to results
     final_results = {"metadata": metadata, "results": results_dict}

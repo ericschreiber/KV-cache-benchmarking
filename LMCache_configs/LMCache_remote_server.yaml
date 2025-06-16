@@ -1,0 +1,7 @@
+# Via LMCache DB
+local_cpu: False # Just to test. For production use True.
+max_local_cpu_size: 0
+max_local_disk_size: 0
+chunk_size: 256
+remote_url: "lm://10.1.32.3:65432"
+remote_serde: "naive"

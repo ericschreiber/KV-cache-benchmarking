@@ -1,0 +1,5 @@
+# CPU and disk
+local_cpu: True
+max_local_cpu_size: 40 # GB
+max_local_disk_size: 160 # GB
+remote_serde: NULL

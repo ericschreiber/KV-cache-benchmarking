@@ -493,6 +493,12 @@ Examples:
         default="LooGLE",
         help="Dataset to use for benchmarking (default: LooGLE)",
     )
+    parser.add_argument(
+        "--disable-warmup",
+        type=bool,
+        default=False,
+        help="Disable warmup for the benchmark (default: False)",
+    )
 
     args = parser.parse_args()
     num_unique_prompts = [
@@ -522,8 +528,21 @@ Examples:
         },
     }
 
+    # Warmup by sending one request to the server
+    if not args.disable_warmup:
+        print("Running warmup...")
+        # send the first prompt from the dataset
+        prompts = create_sample_conversations_from_dataset(
+            dataset_handler, 1, args.num_input_words, args.seed, 0
+        )
+        print(f"Warmup request sent: {prompts[0]}")
+        client = OpenAI(api_key="sk-dummy", base_url=args.api_base)
+        call_server_completion(
+            client, args.model, prompts[0], args.temperature, args.num_output_tokens
+        )
+
     # Run benchmark for each combination of unique prompts and repetitions
-    sum_num_prompts = 0
+    sum_num_prompts = 1
     results_dict = {}
     for num_prompts in num_unique_prompts:
         results_dict[num_prompts] = {}

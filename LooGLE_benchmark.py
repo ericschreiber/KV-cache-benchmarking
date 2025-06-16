@@ -246,6 +246,9 @@ def calculate_metrics(
     prompt_tokens_list = [r[0] for r in results]
     completion_tokens_list = [r[1] for r in results]
     tps_list = [r[2] for r in results if r[2] > 0]  # Filter out zero TPS
+    duration_list = [
+        r[4] - r[3] for r in results
+    ]  # Calculate duration for each request
 
     total_time = end_time - start_time
     total_input_tokens = sum(prompt_tokens_list)
@@ -270,6 +273,17 @@ def calculate_metrics(
             "request_tps_std": (statistics.stdev(tps_list) if len(tps_list) > 1 else 0),
             "request_tps_min": min(tps_list) if tps_list else 0,
             "request_tps_max": max(tps_list) if tps_list else 0,
+        },
+        "timing": {
+            "request_duration_mean": (
+                statistics.mean(duration_list) if duration_list else 0
+            ),
+            "request_duration_std": (
+                statistics.stdev(duration_list) if len(duration_list) > 1 else 0
+            ),
+            "request_duration_min": min(duration_list) if duration_list else 0,
+            "request_duration_max": max(duration_list) if duration_list else 0,
+            "request_duration_list": duration_list,
         },
         "tokens": {
             "input_tokens_mean": (
@@ -517,7 +531,6 @@ Examples:
             print(
                 f"Average request TPS: {results['throughput']['request_tps_mean']:.2f} ± {results['throughput']['request_tps_std']:.2f}"
             )
-        sum_num_prompts += num_prompts
 
     # Add metadata to results
     final_results = {"metadata": metadata, "results": results_dict}

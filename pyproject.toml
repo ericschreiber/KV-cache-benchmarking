@@ -6,5 +6,6 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "datasets>=2.14.0",
+    "matplotlib>=3.7.0",
     "openai>=1.0.0",
 ]

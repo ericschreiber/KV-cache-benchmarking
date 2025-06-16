@@ -92,11 +92,12 @@ class ExecutionOrder:
         for prompt in prompts:
             for _ in range(num_repetitions):
                 results.append(
-                    client.chat.completions.create(
-                        model=model,
-                        messages=prompt,
-                        max_tokens=num_output_tokens,
-                        temperature=temperature,
+                    call_server_completion(
+                        client,
+                        model,
+                        prompt,
+                        temperature,
+                        num_output_tokens,
                     )
                 )
         return results

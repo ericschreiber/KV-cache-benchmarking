@@ -179,8 +179,8 @@ def plot_time_per_token(json_file: str, output_image: str) -> None:
 
         for request_idx, durations in enumerate(duration_lists):
             if durations:  # Check if durations list is not empty
-                # Create x-values for this request count (with small random jitter for visibility)
-                x_vals = [request_idx + np.random.uniform(-0.1, 0.1) for _ in durations]
+                # Create x-values for this request count
+                x_vals = [request_idx for _ in durations]
 
                 ax3.scatter(
                     x_vals,

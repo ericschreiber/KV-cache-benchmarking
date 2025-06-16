@@ -70,8 +70,8 @@ def plot_time_per_token(json_file: str, output_image: str) -> None:
                 )
                 repetition_durations[repetition_key].append(request_durations)
 
-    # Create figure with three subplots
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 16))
+    # Create figure with two subplots instead of three
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
 
     # Style parameters - different colors for different repetitions
     colors = [
@@ -117,35 +117,6 @@ def plot_time_per_token(json_file: str, output_image: str) -> None:
                 color=color,
             )
 
-    # Plot 2: Time to Second Token
-    for i, (repetition_key, time_values) in enumerate(
-        repetition_time_to_second_token.items()
-    ):
-        color = colors[i % len(colors)]
-
-        ax2.plot(
-            x_positions,
-            time_values,
-            color=color,
-            linewidth=2,
-            marker="o",
-            markersize=8,
-            label=f"Repetition {repetition_key.split('_')[1]}",
-        )
-
-        # Add value annotations for each repetition
-        for x, value in zip(x_positions, time_values):
-            ax2.annotate(
-                f"{value:.2f}",
-                xy=(x, value),
-                xytext=(0, 10 + i * 5),  # Offset annotations for different repetitions
-                textcoords="offset points",
-                ha="center",
-                fontsize=8,
-                fontweight="bold",
-                color=color,
-            )
-
     # Styling for subplot 1
     ax1.set_title(
         "Time per Input Token vs. Number of Requests",
@@ -160,20 +131,8 @@ def plot_time_per_token(json_file: str, output_image: str) -> None:
     ax1.tick_params(labelsize=10)
     ax1.ticklabel_format(style="scientific", axis="y", scilimits=(0, 0))
 
-    # Styling for subplot 2
-    ax2.set_title(
-        "Time to Second Token vs. Number of Requests",
-        fontsize=12,
-        fontweight="normal",
-    )
-    ax2.set_ylabel("Time to Second Token (seconds)", fontsize=12)
-    ax2.grid(True, linestyle="--", alpha=0.7)
-    ax2.set_xticks(x_positions)
-    ax2.set_xticklabels(request_counts)
-    ax2.legend(fontsize=10)
-    ax2.tick_params(labelsize=10)
-
-    # Plot 3: Individual Request Durations
+    # Plot 2: Combined Individual Request Durations with Average Lines
+    # First plot the scatter points for individual request durations
     for i, (repetition_key, duration_lists) in enumerate(repetition_durations.items()):
         color = colors[i % len(colors)]
 
@@ -182,32 +141,56 @@ def plot_time_per_token(json_file: str, output_image: str) -> None:
                 # Create x-values for this request count
                 x_vals = [request_idx for _ in durations]
 
-                ax3.scatter(
+                ax2.scatter(
                     x_vals,
                     durations,
                     color=color,
                     s=15,  # Small circle size
                     alpha=0.4,  # Transparency
-                    label=(
-                        f"Repetition {repetition_key.split('_')[1]}"
-                        if request_idx == 0
-                        else ""
-                    ),
                 )
 
-    # Styling for subplot 3
-    ax3.set_title(
-        "Individual Request Durations vs. Number of Requests",
+    # Then plot the average lines (Time to Second Token) on top
+    for i, (repetition_key, time_values) in enumerate(
+        repetition_time_to_second_token.items()
+    ):
+        color = colors[i % len(colors)]
+
+        ax2.plot(
+            x_positions,
+            time_values,
+            color=color,
+            linewidth=2,
+            alpha=0.8,  # Make line slightly transparent
+            linestyle="-",
+            label=f"Repetition {repetition_key.split('_')[1]}",
+        )
+
+        # Add value annotations for averages
+        for x, value in zip(x_positions, time_values):
+            ax2.annotate(
+                f"{value:.2f}",
+                xy=(x, value),
+                xytext=(0, 10 + i * 5),  # Offset annotations for different repetitions
+                textcoords="offset points",
+                ha="center",
+                fontsize=8,
+                fontweight="bold",
+                color=color,
+            )
+
+    # Styling for subplot 2
+    ax2.set_title(
+        "Request Durations vs. Number of Requests (Individual + Averages)",
         fontsize=12,
         fontweight="normal",
     )
-    ax3.set_xlabel("Number of Requests", fontsize=12)
-    ax3.set_ylabel("Request Duration (seconds)", fontsize=12)
-    ax3.grid(True, linestyle="--", alpha=0.7)
-    ax3.set_xticks(x_positions)
-    ax3.set_xticklabels(request_counts)
-    ax3.legend(fontsize=10)
-    ax3.tick_params(labelsize=10)
+    ax2.set_xlabel("Number of Requests", fontsize=12)
+    ax2.set_ylabel("Request Duration (seconds)", fontsize=12)
+    ax2.grid(True, linestyle="--", alpha=0.7)
+    ax2.set_xticks(x_positions)
+    ax2.set_xticklabels(request_counts)
+    ax2.legend(fontsize=9, loc="upper left")
+    ax2.tick_params(labelsize=10)
 
     # Main title
     fig.suptitle(description_subtitle, fontsize=16, fontweight="bold")

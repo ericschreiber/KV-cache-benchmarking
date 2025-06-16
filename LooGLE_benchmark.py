@@ -103,6 +103,8 @@ class ExecutionOrder:
         results = []
         for prompt in prompts:
             for _ in range(num_repetitions):
+                # print the first 5 words of the prompt
+                print(prompt[0]["content"][:5])
                 results.append(
                     call_server_completion(
                         client,
@@ -439,14 +441,14 @@ Examples:
     parser.add_argument(
         "--num-concurrent-requests",
         type=int,
-        default=-1,
-        help="Number of concurrent requests (-1 means all) (default: 4)",
+        default=1,
+        help="Number of concurrent requests (-1 means all) (default: 1)",
     )
     parser.add_argument(
         "--execution-order",
         type=str,
         choices=["random", "sequential", "randomSequential"],
-        default="random",
+        default="sequential",
         help="Order of repetitions (default: random)",
     )
     parser.add_argument(
@@ -544,6 +546,7 @@ Examples:
             print(
                 f"Average request TPS: {results['throughput']['request_tps_mean']:.2f} ± {results['throughput']['request_tps_std']:.2f}"
             )
+        sum_num_prompts += num_prompts
 
     # Add metadata to results
     final_results = {"metadata": metadata, "results": results_dict}

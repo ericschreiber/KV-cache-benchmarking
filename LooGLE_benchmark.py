@@ -117,8 +117,13 @@ class ExecutionOrder:
             )
 
         # Extend the list of prompts num_repetitions times and shuffle them
-        prompts = prompts * num_repetitions
-        prompts = random.shuffle(prompts)
+        extended_prompts = []
+        for _ in range(num_repetitions):
+            extended_prompts.extend(prompts)
+
+        # Shuffle the extended list
+        random.shuffle(extended_prompts)
+        prompts = extended_prompts
 
         results = []
         # Execute the tasks concurrently
@@ -445,6 +450,9 @@ Examples:
     num_unique_prompts = [
         int(bs.strip()) for bs in args.num_unique_prompts.split(",") if bs.strip()
     ]
+    num_repetitions = [
+        int(reps.strip()) for reps in args.num_repetitions.split(",") if reps.strip()
+    ]
 
     # Create metadata
     metadata = {
@@ -464,41 +472,50 @@ Examples:
         },
     }
 
-    # Run benchmark
+    # Run benchmark for each combination of unique prompts and repetitions
     results_dict = {}
-    for num_unique_prompts in num_unique_prompts:
-        results = run_benchmark(
-            api_base=args.api_base,
-            model=args.model,
-            num_input_words=args.num_input_words,
-            num_output_tokens=args.num_output_tokens,
-            num_unique_prompts=num_unique_prompts,
-            num_repetitions=args.num_repetitions,
-            num_concurrent_requests=args.num_concurrent_requests,
-            execution_order=args.execution_order,
-            seed=args.seed,
-            temperature=args.temperature,
-        )
-        results_dict[num_unique_prompts] = results
+    for num_prompts in num_unique_prompts:
+        results_dict[num_prompts] = {}
+        for num_reps in num_repetitions:
+            print(
+                f"\n=== Running benchmark: {num_prompts} prompts, {num_reps} repetitions ==="
+            )
+            results = run_benchmark(
+                api_base=args.api_base,
+                model=args.model,
+                num_input_words=args.num_input_words,
+                num_output_tokens=args.num_output_tokens,
+                num_unique_prompts=num_prompts,
+                num_repetitions=num_reps,
+                num_concurrent_requests=args.num_concurrent_requests,
+                execution_order=args.execution_order,
+                seed=args.seed,
+                temperature=args.temperature,
+            )
+            results_dict[num_prompts][num_reps] = results
 
-        # Add metadata to results
-        final_results = {"metadata": metadata, "results": results_dict}
+            # Display summary for this run
+            print(
+                f"\n=== Benchmark Results Summary: {num_prompts} prompts, {num_reps} repetitions ==="
+            )
+            print(f"Total requests: {results['summary']['total_requests']}")
+            print(f"Total time: {results['summary']['total_time_seconds']:.2f} seconds")
+            print(f"Total output tokens: {results['summary']['total_output_tokens']}")
+            print(f"Overall TPS: {results['throughput']['overall_tps']:.2f}")
+            print(
+                f"Requests per second: {results['throughput']['requests_per_second']:.2f}"
+            )
+            print(
+                f"Average request TPS: {results['throughput']['request_tps_mean']:.2f} ± {results['throughput']['request_tps_std']:.2f}"
+            )
 
-        # Display summary
-        print(f"\n=== Benchmark Results Summary ===")
-        print(f"Total requests: {results['summary']['total_requests']}")
-        print(f"Total time: {results['summary']['total_time_seconds']:.2f} seconds")
-        print(f"Total output tokens: {results['summary']['total_output_tokens']}")
-        print(f"Overall TPS: {results['throughput']['overall_tps']:.2f}")
-        print(
-            f"Requests per second: {results['throughput']['requests_per_second']:.2f}"
-        )
-        print(
-            f"Average request TPS: {results['throughput']['request_tps_mean']:.2f} ± {results['throughput']['request_tps_std']:.2f}"
-        )
+    # Add metadata to results
+    final_results = {"metadata": metadata, "results": results_dict}
 
-        # Save results
-        save_results(final_results, args.results_file)
+    # Save results
+    save_results(final_results, args.results_file)
+    print(f"\n=== All benchmarks completed! ===")
+    print(f"Results saved to {args.results_file}")
 
 
 def test_benchmark_output_input_conversations():

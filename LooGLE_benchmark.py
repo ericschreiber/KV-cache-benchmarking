@@ -537,7 +537,7 @@ Examples:
         )
         print(f"Warmup request sent: {prompts[0]}")
         client = OpenAI(api_key="sk-dummy", base_url=args.api_base)
-        call_server_completion(
+        _, _, _, _, _ = call_server_completion(
             client, args.model, prompts[0], args.temperature, args.num_output_tokens
         )
 

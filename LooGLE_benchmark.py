@@ -30,15 +30,17 @@ from datasets import load_dataset
 
 class DatasetHandler:
     @staticmethod
-    def loogle_handler(num_unique_prompts, num_input_words, seed):
+    def loogle_handler(num_unique_prompts, num_input_words, seed, offset):
         ds = load_dataset("bigai-nlco/LooGLE", "longdep_qa")
         dataset_size = len(ds["test"])
         assert (
-            num_unique_prompts <= dataset_size
-        ), f"Requested {num_unique_prompts} unique prompts, dataset has {dataset_size} unique prompts"
+            num_unique_prompts + offset <= dataset_size
+        ), f"Requested {num_unique_prompts} unique prompts, with offset {offset}, dataset has {dataset_size} unique prompts. Offset is due to the number of prompts already run."
 
         sampled_dataset = (
-            ds["test"].shuffle(seed=seed).select(range(num_unique_prompts))
+            ds["test"]
+            .shuffle(seed=seed)
+            .select(range(offset, offset + num_unique_prompts))
         )
 
         conversations = []
@@ -178,7 +180,7 @@ class ExecutionOrder:
         ) as executor:
             futures = [
                 executor.submit(
-                    Benchmark.execute_sequential,  # Use class name instead of self
+                    ExecutionOrder.execute_sequential,  # Use correct class name
                     client,
                     model,
                     [prompt],
@@ -202,12 +204,16 @@ EXECUTION_ORDERS = {
 
 
 def create_sample_conversations(
-    dataset_key: str, num_unique_prompts: int, num_input_words: int, seed: int = 42
+    dataset_key: str,
+    num_unique_prompts: int,
+    num_input_words: int,
+    seed: int = 42,
+    offset: int = 0,
 ):
     handler = DATASET_HANDLERS.get(dataset_key)
     if not handler:
         raise ValueError(f"Unknown dataset key: {dataset_key}")
-    return handler(num_unique_prompts, num_input_words, seed)
+    return handler(num_unique_prompts, num_input_words, seed, offset)
 
 
 def call_server_completion(client, model, messages, temperature, max_tokens):
@@ -297,6 +303,7 @@ def run_benchmark(
     num_input_words: int = 100,
     num_output_tokens: int = 2,
     num_unique_prompts: int = 100,
+    offset: int = 0,
     num_repetitions: int = 10,
     num_concurrent_requests: int = -1,
     seed: int = 42,
@@ -310,7 +317,7 @@ def run_benchmark(
 
     execution_func = EXECUTION_ORDERS[execution_order]
     prompts = create_sample_conversations(
-        dataset_key, num_unique_prompts, num_input_words, seed
+        dataset_key, num_unique_prompts, num_input_words, seed, offset
     )
 
     print(f"=== LooGLE Benchmark Configuration ===")
@@ -473,10 +480,11 @@ Examples:
     }
 
     # Run benchmark for each combination of unique prompts and repetitions
+    sum_num_prompts = 0
     results_dict = {}
     for num_prompts in num_unique_prompts:
         results_dict[num_prompts] = {}
-        for num_reps in num_repetitions:
+        for index, num_reps in enumerate(num_repetitions):
             print(
                 f"\n=== Running benchmark: {num_prompts} prompts, {num_reps} repetitions ==="
             )
@@ -486,13 +494,15 @@ Examples:
                 num_input_words=args.num_input_words,
                 num_output_tokens=args.num_output_tokens,
                 num_unique_prompts=num_prompts,
+                offset=sum_num_prompts,
                 num_repetitions=num_reps,
                 num_concurrent_requests=args.num_concurrent_requests,
                 execution_order=args.execution_order,
                 seed=args.seed,
                 temperature=args.temperature,
             )
-            results_dict[num_prompts][num_reps] = results
+            results_dict[num_prompts][f"repetition_{index}:{num_reps}"] = results
+            sum_num_prompts += num_prompts
 
             # Display summary for this run
             print(
@@ -520,7 +530,7 @@ Examples:
 
 def test_benchmark_output_input_conversations():
     # print out the created conversations
-    prompts = create_sample_conversations("LooGLE", 100, 100, 42)
+    prompts = create_sample_conversations("LooGLE", 100, 100, 42, 0)
     for prompt in prompts:
         print(prompt)
 

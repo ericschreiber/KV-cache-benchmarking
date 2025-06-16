@@ -517,6 +517,7 @@ Examples:
             print(
                 f"\n=== Running benchmark: {num_prompts} prompts, {num_reps} repetitions ==="
             )
+            print(f"Sum of num prompts: {sum_num_prompts}")
             results = run_benchmark(
                 api_base=args.api_base,
                 model=args.model,

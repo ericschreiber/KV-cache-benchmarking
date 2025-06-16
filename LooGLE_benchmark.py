@@ -112,8 +112,6 @@ class ExecutionOrder:
         results = []
         for prompt in prompts:
             for _ in range(num_repetitions):
-                # print the first 5 words of the prompt
-                print(prompt[0]["content"][:5])
                 results.append(
                     call_server_completion(
                         client,
@@ -533,7 +531,6 @@ Examples:
             print(
                 f"\n=== Running benchmark: {num_prompts} prompts, {num_reps} repetitions ==="
             )
-            print(f"Sum of num prompts: {sum_num_prompts}")
             results = run_benchmark(
                 dataset_handler,
                 api_base=args.api_base,

@@ -22,25 +22,37 @@ import json
 import random
 import statistics
 import time
+import pandas as pd
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
 from openai import OpenAI
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 
 
 class DatasetHandler:
     @staticmethod
     def loogle_handler(num_unique_prompts, num_input_words, seed, offset):
-        ds = load_dataset("bigai-nlco/LooGLE", "longdep_qa")
-        dataset_size = len(ds["test"])
+        ds_original = load_dataset("bigai-nlco/LooGLE", "longdep_qa")
+        # As the dataset has multiple questions to the same context, we need to make sure that we have unique prompts
+        # 1. Convert to pandas
+        # 2. Group by context, sample one question so afterwards we should have a dataset of unique contexts and questions
+        ds_pd = pd.DataFrame(ds_original["test"])
+        original_size = len(ds_pd)
+
+        # Group by context and take the first question for each unique context
+        ds_pd = ds_pd.groupby("context").first().reset_index()
+
+        ds = Dataset.from_pandas(ds_pd)
+        # print(f"Original dataset size: {original_size}") # 1101
+        # print(f"Unique contexts dataset size: {len(ds)}") # 140
+
+        dataset_size = len(ds)
         assert (
             num_unique_prompts + offset <= dataset_size
         ), f"Requested {num_unique_prompts} unique prompts, with offset {offset}, dataset has {dataset_size} unique prompts. Offset is due to the number of prompts already run."
 
-        sampled_dataset = (
-            ds["test"]
-            .shuffle(seed=seed)
-            .select(range(offset, offset + num_unique_prompts))
+        sampled_dataset = ds.shuffle(seed=seed).select(
+            range(offset, offset + num_unique_prompts)
         )
 
         conversations = []
@@ -553,4 +565,5 @@ def test_benchmark_output_input_conversations():
 
 
 if __name__ == "__main__":
+    # test_benchmark_output_input_conversations()
     main()

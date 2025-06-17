@@ -535,7 +535,7 @@ Examples:
         prompts = create_sample_conversations_from_dataset(
             dataset_handler, 1, args.num_input_words, args.seed, 0
         )
-        print(f"Warmup request sent: {prompts[0]}")
+        # print(f"Warmup request sent: {prompts[0]}")
         client = OpenAI(api_key="sk-dummy", base_url=args.api_base)
         _, _, _, _, _ = call_server_completion(
             client, args.model, prompts[0], args.temperature, args.num_output_tokens

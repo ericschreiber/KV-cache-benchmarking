@@ -1,0 +1,16 @@
+### Via LMCache DB
+local_cpu: False # Just to test. For production use True.
+max_local_cpu_size: 0
+max_local_disk_size: 0
+chunk_size: 256
+remote_url: "lm://localhost:65432"
+remote_serde: "naive"
+
+# NIXL configuration for KV cache transfer
+enable_nixl: False
+nixl_role: "receiver"        # Decoder acts as KV cache receiver
+nixl_receiver_host: "localhost"  # Host where decoder is listening
+nixl_receiver_port: 8555        # Port where decoder is listening
+nixl_buffer_size: 1073741824  # 1GB buffer for KV cache transfer
+nixl_buffer_device: "cuda"   # Use GPU memory for buffer
+nixl_enable_gc: True         # Enable garbage collection
